@@ -86,7 +86,7 @@ export default function Chat({ userId, logout }) {
   };
 
   return (
-    <div className="h-[100vh]   flex bg-black text-cyan-400 overflow-hidden">
+    <div className="h-[90vh]   flex bg-black text-cyan-400 overflow-hidden">
       {/* Mobile menu button */}
       <button
         className="sm:hidden absolute top-4 left-4 z-50 bg-cyan-700 text-black px-3 py-2 rounded"
