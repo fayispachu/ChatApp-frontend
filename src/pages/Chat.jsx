@@ -9,6 +9,7 @@ export default function Chat({ userId, logout }) {
   const [selectedUser, setSelectedUser] = useState(null);
   const [messages, setMessages] = useState([]);
   const [text, setText] = useState("");
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const messagesEndRef = useRef(null);
 
   const scrollToBottom = () =>
@@ -21,14 +22,12 @@ export default function Chat({ userId, logout }) {
     setSocket(s);
 
     s.on("receive_message", (msg) => {
-      // Normalize IDs to strings
       const formatted = {
         ...msg,
         sender: String(msg.sender),
         receiver: String(msg.receiver),
       };
 
-      // Only add if it's relevant to this chat
       if (
         (formatted.sender === String(userId) && formatted.receiver === String(selectedUser?._id)) ||
         (formatted.sender === String(selectedUser?._id) && formatted.receiver === String(userId))
@@ -44,18 +43,15 @@ export default function Chat({ userId, logout }) {
   }, [userId, selectedUser]);
 
   // Load users
-useEffect(() => {
-  API.get("/users")
-    .then((res) => {
-      setUsers(res.data);
-    })
-    .catch((err) => {
-      console.error("Failed to fetch users:", err.response?.data || err.message);
-    });
-}, []);
+  useEffect(() => {
+    API.get("/users")
+      .then((res) => setUsers(res.data))
+      .catch((err) =>
+        console.error("Failed to fetch users:", err.response?.data || err.message)
+      );
+  }, []);
 
-
-  // Load past messages
+  // Load messages
   useEffect(() => {
     if (!selectedUser) return;
     setMessages([]);
@@ -73,7 +69,6 @@ useEffect(() => {
 
   useEffect(scrollToBottom, [messages]);
 
-  // Send message
   const sendMessage = () => {
     if (!socket || !selectedUser || !text.trim()) return;
 
@@ -85,22 +80,43 @@ useEffect(() => {
     };
 
     socket.emit("send_message", msg);
-    setText(""); // clear input, do NOT add to messages here
+    setText("");
   };
 
   return (
-    <div className="h-screen flex bg-black text-white">
-      <UserList users={users} selectUser={setSelectedUser} />
+    <div className="h-screen flex bg-black text-cyan-400 overflow-hidden">
+      {/* Mobile menu button */}
+      <button
+        className="sm:hidden absolute top-4 left-4 z-50 bg-cyan-700 text-black px-3 py-2 rounded"
+        onClick={() => setSidebarOpen(true)}
+      >
+        ☰
+      </button>
 
-      <div className="flex-1 flex flex-col">
+      {/* Sidebar */}
+      <div
+        className={`fixed top-0 left-0 h-full w-64 z-40 transform bg-black transition-transform duration-300 sm:relative sm:translate-x-0 ${
+          sidebarOpen ? "translate-x-0" : "-translate-x-full"
+        }`}
+      >
+        <UserList
+          users={users}
+          selectUser={setSelectedUser}
+          myUserId={userId}
+          onClose={() => setSidebarOpen(false)}
+        />
+      </div>
+
+      {/* Chat main area */}
+      <div className="flex-1 flex flex-col ml-0 sm:ml-64">
         {/* Header */}
-        <div className="flex justify-between items-center bg-gray-900 p-4 border-b border-gray-800">
-          <span className="font-semibold text-cyan-400">
+        <div className="flex justify-between items-center bg-black p-4 border-b border-cyan-700">
+          <span className="font-semibold text-cyan-400 text-lg">
             {selectedUser ? selectedUser.username : "Select a user"}
           </span>
           <button
             onClick={logout}
-            className="bg-red-600 text-white px-3 py-1 rounded hover:bg-red-700"
+            className="bg-cyan-700 text-black px-4 py-2 rounded hover:bg-cyan-600 transition-colors"
           >
             Logout
           </button>
@@ -113,14 +129,14 @@ useEffect(() => {
             return (
               <div
                 key={i}
-                className={`max-w-xs px-3 py-2 rounded-lg break-words flex flex-col ${
+                className={`max-w-xs sm:max-w-md px-3 py-2 rounded-lg break-words flex flex-col ${
                   isSender
-                    ? "bg-cyan-500 text-black ml-auto items-end"
-                    : "bg-gray-800 text-white mr-auto items-start"
+                    ? "bg-cyan-700 text-black ml-auto items-end"
+                    : "bg-black text-cyan-400 mr-auto items-start border border-cyan-700"
                 }`}
               >
                 <span>{m.text}</span>
-                <span className="text-xs text-gray-300 mt-1">{m.time}</span>
+                <span className="text-xs text-cyan-400 mt-1">{m.time}</span>
               </div>
             );
           })}
@@ -129,9 +145,9 @@ useEffect(() => {
 
         {/* Input */}
         {selectedUser && (
-          <div className="flex p-4 bg-gray-900 gap-2 border-t border-gray-800">
+          <div className="flex p-4 gap-2 border-t border-cyan-700">
             <input
-              className="flex-1 p-2 rounded bg-gray-800 text-white outline-none"
+              className="flex-1 p-2 rounded bg-black text-cyan-400 outline-none placeholder-cyan-700 border border-cyan-700"
               placeholder="Type a message..."
               value={text}
               onChange={(e) => setText(e.target.value)}
@@ -139,7 +155,7 @@ useEffect(() => {
             />
             <button
               onClick={sendMessage}
-              className="bg-cyan-500 text-black px-4 py-2 rounded hover:bg-cyan-400"
+              className="bg-cyan-700 text-black px-4 py-2 rounded hover:bg-cyan-600 transition-colors"
             >
               Send
             </button>
