@@ -1,66 +1,52 @@
-import { useState } from "react";
-import API from "../api/api";
+import { useState, useEffect, useRef } from "react";
 
-export default function Register({ setMode }) {
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
+export default function UserList({ users, selectUser, myUserId, onClose }) {
+  const [activeId, setActiveId] = useState(null);
+  const listRef = useRef();
 
-  const register = async () => {
-    try {
-      await API.post("/auth/register", { username, password });
-      setSuccess("Registration successful! Redirecting to login...");
-      setTimeout(() => setMode("login"), 1500);
-    } catch (err) {
-      setError(err.response?.data?.message || "Registration failed");
-      console.error(err);
-    }
+  const handleSelect = (user) => {
+    setActiveId(user._id);
+    selectUser(user);
+    if (onClose) onClose(); // Close sidebar on mobile after selection
   };
 
+  // Close sidebar if click outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (listRef.current && !listRef.current.contains(event.target) && onClose) {
+        onClose();
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [onClose]);
+
   return (
-    <div className="h-screen flex flex-col justify-center items-center bg-black text-cyan-400 px-4">
-      <h1 className="text-3xl font-bold mb-6">Register</h1>
+    <div
+      ref={listRef}
+      className="w-64 sm:w-64 bg-black text-cyan-400 flex flex-col border-r border-cyan-700 h-full"
+    >
+      <h2 className="text-xl font-bold p-4 border-b border-cyan-700 text-center">
+        Users
+      </h2>
+      <div className="flex-1 overflow-y-auto">
+        {users.map((u) => {
+          const isActive = activeId === u._id;
+          const isMe = u._id === myUserId;
 
-      {error && (
-        <p className="text-red-500 bg-black px-4 py-2 rounded mb-4 w-full text-center">
-          {error}
-        </p>
-      )}
-      {success && (
-        <p className="text-green-500 bg-black px-4 py-2 rounded mb-4 w-full text-center">
-          {success}
-        </p>
-      )}
-
-      <div className="w-full max-w-sm flex flex-col gap-4">
-        <input
-          placeholder="Username"
-          value={username}
-          onChange={(e) => setUsername(e.target.value)}
-          className="p-3 rounded bg-black border border-cyan-700 placeholder-cyan-700 text-cyan-400 focus:outline-none focus:border-cyan-400"
-        />
-        <input
-          type="password"
-          placeholder="Password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          className="p-3 rounded bg-black border border-cyan-700 placeholder-cyan-700 text-cyan-400 focus:outline-none focus:border-cyan-400"
-        />
-        <button
-          onClick={register}
-          className="bg-cyan-700 text-black py-3 rounded font-semibold hover:bg-cyan-600 transition-colors"
-        >
-          Register
-        </button>
+          return (
+            <div
+              key={u._id}
+              onClick={() => handleSelect(u)}
+              className={`p-3 cursor-pointer flex items-center justify-center rounded mb-1 transition-colors duration-200
+                ${isActive ? "bg-cyan-700 text-black" : "hover:bg-cyan-800"}
+                ${isMe ? "font-bold text-cyan-400" : ""}`}
+            >
+              {u.username} {isMe && "(You)"}
+            </div>
+          );
+        })}
       </div>
-
-      <p
-        className="mt-6 text-sm cursor-pointer hover:underline text-cyan-500"
-        onClick={() => setMode("login")}
-      >
-        Already have an account? Login
-      </p>
     </div>
   );
 }
