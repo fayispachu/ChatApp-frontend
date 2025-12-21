@@ -1,7 +1,7 @@
 import axios from "axios";
 
 const API = axios.create({
-  baseURL:  "https://chatapp-backend-p8q9.onrender.com/api",
+  baseURL:  "http://localhost:5000/api",
   withCredentials: true, // optional but good for cross-origin
 });
 
