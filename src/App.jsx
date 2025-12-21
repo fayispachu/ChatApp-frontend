@@ -8,6 +8,7 @@ function App() {
   const [loading, setLoading] = useState(true);
   const [mode, setMode] = useState("login");
 
+  // Restore login on refresh
   useEffect(() => {
     const token = localStorage.getItem("token");
     const storedUserId = localStorage.getItem("userId");
@@ -17,7 +18,9 @@ function App() {
     setLoading(false);
   }, []);
 
+  // Called after login
   const handleLogin = (data) => {
+    // Ensure backend returns { token, userId } exactly
     localStorage.setItem("token", data.token);
     localStorage.setItem("userId", data.userId);
     setUserId(data.userId);
@@ -31,9 +34,9 @@ function App() {
 
   if (loading) return null;
 
-  if (userId) return <Chat userId={userId} logout={logout} />;
-
-  return mode === "login" ? (
+  return userId ? (
+    <Chat userId={userId} logout={logout} />
+  ) : mode === "login" ? (
     <Login onLogin={handleLogin} setMode={setMode} />
   ) : (
     <Register setMode={setMode} />

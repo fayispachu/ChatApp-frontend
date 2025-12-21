@@ -44,11 +44,16 @@ export default function Chat({ userId, logout }) {
   }, [userId, selectedUser]);
 
   // Load users
-  useEffect(() => {
-    API.get("/users")
-      .then((res) => setUsers(res.data.filter((u) => u._id !== userId)))
-      .catch(console.error);
-  }, [userId]);
+useEffect(() => {
+  API.get("/users")
+    .then((res) => {
+      setUsers(res.data);
+    })
+    .catch((err) => {
+      console.error("Failed to fetch users:", err.response?.data || err.message);
+    });
+}, []);
+
 
   // Load past messages
   useEffect(() => {

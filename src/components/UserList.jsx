@@ -1,6 +1,6 @@
 import { useState } from "react";
 
-export default function UserList({ users, selectUser }) {
+export default function UserList({ users, selectUser, myUserId }) {
   const [activeId, setActiveId] = useState(null);
 
   const handleSelect = (user) => {
@@ -20,9 +20,9 @@ export default function UserList({ users, selectUser }) {
             onClick={() => handleSelect(u)}
             className={`p-3 cursor-pointer border-b border-gray-800 flex items-center justify-between ${
               activeId === u._id ? "bg-gray-800" : "hover:bg-gray-900"
-            }`}
+            } ${u._id === myUserId ? "font-bold text-cyan-400" : ""}`}
           >
-            <span>{u.username}</span>
+            {u.username} {u._id === myUserId ? "(You)" : ""}
           </div>
         ))}
       </div>
