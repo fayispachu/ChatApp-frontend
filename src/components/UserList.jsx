@@ -24,7 +24,7 @@ export default function UserList({ users, selectUser, myUserId, onClose }) {
   return (
     <div
       ref={listRef}
-      className="w-64 sm:w-64 bg-black text-cyan-400 flex flex-col border-r border-cyan-700 h-full"
+      className="w-64 sm:w-64 bg-black text-cyan-400 flex flex-col border-r border-cyan-700 h-[100vh]"
     >
       <h2 className="text-xl font-bold p-4 border-b border-cyan-700 text-center">
         Users
