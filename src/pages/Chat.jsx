@@ -86,84 +86,85 @@ export default function Chat({ userId, logout }) {
   };
 
   return (
-    <div className="h-[87vh] md:h-full    flex bg-black text-cyan-400 overflow-hidden">
-      {/* Mobile menu button */}
+   <div className="h-[100vh]  flex bg-green-50 text-green-900 overflow-hidden">
+  {/* Mobile menu button */}
+  <button
+    className="sm:hidden absolute top-4 left-4 z-50 bg-green-600/65 text-white px-3 py-2 rounded-lg shadow"
+    onClick={() => setSidebarOpen(true)}
+  >
+    ☰
+  </button>
+
+  {/* Sidebar */}
+  <div
+    className={`fixed top-0 left-0 h-full z-40 transform bg-white transition-transform duration-300 sm:relative sm:translate-x-0 ${
+      sidebarOpen ? "translate-x-0" : "-translate-x-full"
+    }`}
+  >
+    <UserList
+      users={users}
+      selectUser={setSelectedUser}
+      myUserId={userId}
+      onClose={() => setSidebarOpen(false)}
+    />
+  </div>
+
+  {/* Chat main area */}
+  <div className="flex-1 flex flex-col ">
+    {/* Header */}
+    <div className="flex  justify-between items-center bg-white p-4 border-b border-green-200 shadow-sm">
+      <span className="font-semibold text-green-700 text-lg text-center flex-1 truncate">
+        {selectedUser ? selectedUser.username : "Select a user"}
+      </span>
       <button
-        className="sm:hidden absolute top-4 left-4 z-50 bg-cyan-700 text-black px-3 py-2 rounded"
-        onClick={() => setSidebarOpen(true)}
+        onClick={logout}
+        className="bg-green-600/40 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition"
       >
-        ☰
+        Logout
       </button>
-
-      {/* Sidebar */}
-      <div
-        className={`fixed top-0 left-0 h-full z-40 transform bg-black transition-transform duration-300 sm:relative sm:translate-x-0 ${
-          sidebarOpen ? "translate-x-0" : "-translate-x-full"
-        }`}
-      >
-        <UserList
-          users={users}
-          selectUser={setSelectedUser}
-          myUserId={userId}
-          onClose={() => setSidebarOpen(false)}
-        />
-      </div>
-
-      {/* Chat main area */}
-      <div className="flex-1 flex flex-col sm:ml-64">
-        {/* Header */}
-        <div className="flex justify-between items-center bg-black p-4 border-b border-cyan-700">
-          <span className="font-semibold text-cyan-400 text-lg text-center flex-1">
-            {selectedUser ? selectedUser.username : "Select a user"}
-          </span>
-          <button
-            onClick={logout}
-            className="bg-cyan-700 text-black px-4 py-2 rounded hover:bg-cyan-600 transition-colors"
-          >
-            Logout
-          </button>
-        </div>
-
-        {/* Messages */}
-        <div className="flex-1 p-4 overflow-y-auto space-y-3">
-          {messages.map((m, i) => {
-            const isSender = String(m.sender) === String(userId);
-            return (
-              <div
-                key={i}
-                className={`max-w-xs sm:max-w-md px-3 py-2 rounded-lg break-words flex flex-col ${
-                  isSender
-                    ? "bg-cyan-700 text-black ml-auto items-end"
-                    : "bg-black text-cyan-400 mr-auto items-start border border-cyan-700"
-                }`}
-              >
-                <span>{m.text}</span>
-                <span className="text-xs text-cyan-400 mt-1">{m.time}</span>
-              </div>
-            );
-          })}
-          <div ref={messagesEndRef} />
-        </div>
-
-        {/* Input */}
-        {selectedUser && (
-          <div className="flex p-4 gap-2 border-t border-cyan-700">
-            <input
-              className="flex-1 p-2 rounded bg-black text-cyan-400 outline-none placeholder-cyan-700 border border-cyan-700"
-              placeholder="Type a message..."
-              value={text}
-              onChange={(e) => setText(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && sendMessage()}
-            />
-            <button
-              onClick={sendMessage}
-              className="bg-cyan-700 text-black px-4 py-2 rounded hover:bg-cyan-600 transition-colors"
-            >
-              Send
-            </button>
-          </div>
-        )}
-      </div>
     </div>
+
+    {/* Messages */}
+    <div className="flex-1 p-4 overflow-y-auto space-y-3 bg-green-50">
+      {messages.map((m, i) => {
+        const isSender = String(m.sender) === String(userId);
+        return (
+          <div
+            key={i}
+            className={`w-full max-w-xs px-4 py-2  shadow-sm flex flex-col ${
+              isSender
+                ? "bg-green-600/65 text-white ml-auto items-end rounded-l-2xl rounded-tr-2xl border border-green-400"
+                : "bg-white/65 text-green-900 mr-auto items-start rounded-r-2xl rounded-bl-2xl border border-green-200"
+            }`}
+          >
+            <span>{m.text}</span>
+            <span className="text-xs opacity-70 mt-1">{m.time}</span>
+          </div>
+        );
+      })}
+      <div ref={messagesEndRef} />
+    </div>
+
+    {/* Input */}
+    {selectedUser && (
+      <div className="flex p-4 gap-2 border-t border-green-200 bg-white">
+        <input
+          className="flex-1 p-3 rounded-xl bg-green-50 text-green-900 outline-none border border-green-300 focus:ring-2 focus:ring-green-400"
+          placeholder="Type a message..."
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          onKeyDown={(e) => e.key === "Enter" && sendMessage()}
+        />
+        <button
+          onClick={sendMessage}
+          className="bg-green-600/65 text-white px-5 py-2 rounded-xl hover:bg-green-700 transition"
+        >
+          Send
+        </button>
+      </div>
+    )}
+  </div>
+</div>
+
   );
 }
