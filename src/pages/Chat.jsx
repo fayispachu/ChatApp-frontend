@@ -26,6 +26,9 @@ export default function Chat({ userId, logout }) {
   const [remoteStream, setRemoteStream] = useState(null);
   const [caller, setCaller] = useState(null);
   const [incomingOffer, setIncomingOffer] = useState(null);
+  const [isVideoCall, setIsVideoCall] = useState(true);
+  const [isMuted, setIsMuted] = useState(false);
+  const [isVideoOff, setIsVideoOff] = useState(false);
 
   const messagesEndRef = useRef(null);
   const typingTimeoutRef = useRef(null);
@@ -56,9 +59,10 @@ export default function Chat({ userId, logout }) {
     });
 
     // --- Calling Listeners ---
-    s.on("incoming_call", ({ sender, offer }) => {
+    s.on("incoming_call", ({ sender, offer, isVideo }) => {
       setCaller(users.find(u => String(u._id) === String(sender)));
       setIncomingOffer(offer);
+      setIsVideoCall(isVideo);
       setCallStatus("incoming");
     });
 
@@ -132,6 +136,9 @@ export default function Chat({ userId, logout }) {
   const startCall = async (video = true) => {
     if (!selectedUser) return;
     setCallStatus("calling"); // Set status immediately
+    setIsVideoCall(video);
+    setIsMuted(false);
+    setIsVideoOff(false);
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ video, audio: true });
       setLocalStream(stream);
@@ -142,7 +149,7 @@ export default function Chat({ userId, logout }) {
       const offer = await pc.createOffer();
       await pc.setLocalDescription(offer);
 
-      socket.emit("call_user", { receiver: selectedUser._id, offer });
+      socket.emit("call_user", { receiver: selectedUser._id, offer, isVideo: video });
     } catch (err) {
       console.error("Failed to start call", err);
       setCallStatus(null); // Reset on failure
@@ -154,7 +161,10 @@ export default function Chat({ userId, logout }) {
     if (!caller || !incomingOffer) return;
     setCallStatus("active"); // Set status immediately
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+      const stream = await navigator.mediaDevices.getUserMedia({ 
+        video: isVideoCall, 
+        audio: true 
+      });
       setLocalStream(stream);
 
       const pc = createPeer(caller._id);
@@ -177,6 +187,26 @@ export default function Chat({ userId, logout }) {
     endCallLocally();
   };
 
+  const toggleMute = () => {
+    if (localStream) {
+      const audioTrack = localStream.getAudioTracks()[0];
+      if (audioTrack) {
+        audioTrack.enabled = !audioTrack.enabled;
+        setIsMuted(!audioTrack.enabled);
+      }
+    }
+  };
+
+  const toggleVideo = () => {
+    if (localStream) {
+      const videoTrack = localStream.getVideoTracks()[0];
+      if (videoTrack) {
+        videoTrack.enabled = !videoTrack.enabled;
+        setIsVideoOff(!videoTrack.enabled);
+      }
+    }
+  };
+
   const endCallLocally = () => {
     if (localStream) {
       localStream.getTracks().forEach(track => track.stop());
@@ -190,6 +220,8 @@ export default function Chat({ userId, logout }) {
     setCallStatus(null);
     setIncomingOffer(null);
     setCaller(null);
+    setIsMuted(false);
+    setIsVideoOff(false);
   };
 
   // --- Message Logic ---
@@ -249,7 +281,11 @@ export default function Chat({ userId, logout }) {
             onAnswer={answerCall}
             onReject={endCall}
             onEnd={endCall}
-            isVideoCall={true}
+            isVideoCall={isVideoCall}
+            isMuted={isMuted}
+            isVideoOff={isVideoOff}
+            onToggleMute={toggleMute}
+            onToggleVideo={toggleVideo}
           />
         )}
       </AnimatePresence>
