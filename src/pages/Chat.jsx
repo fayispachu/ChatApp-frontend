@@ -525,7 +525,13 @@ export default function Chat({ userId, logout }) {
                   <button onClick={() => fileInputRef.current.click()} disabled={uploading} className="p-3 rounded-xl text-slate-400 hover:text-indigo-400 hover:bg-slate-800 transition-all disabled:opacity-50">
                     {uploading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Paperclip className="w-5 h-5" />}
                   </button>
-                  <input className="flex-1 bg-transparent py-3 px-2 text-white placeholder-slate-500 outline-none text-sm" placeholder={`Message ${selectedUser.username}...`} value={text} onChange={handleInputChange} onKeyDown={(e) => e.key === "Enter" && sendMessage()} />
+                  <input 
+                    className="flex-1 bg-transparent py-3 px-2 text-white placeholder-slate-500 outline-none text-sm" 
+                    placeholder={`Message ${selectedUser?.username || selectedGroup?.name}...`} 
+                    value={text} 
+                    onChange={handleInputChange} 
+                    onKeyDown={(e) => e.key === "Enter" && sendMessage()} 
+                  />
                   <div className="flex items-center gap-1 pr-1">
                     <button onClick={() => setShowEmoji(!showEmoji)} className={cn("p-3 rounded-xl transition-all", showEmoji ? "text-indigo-400 bg-slate-800" : "text-slate-400 hover:text-indigo-400 hover:bg-slate-800")}><Smile className="w-5 h-5" /></button>
                     <button onClick={() => sendMessage()} disabled={(!text.trim() && !uploading)} className={cn("p-3 rounded-xl transition-all shadow-lg", (text.trim() || uploading) ? "bg-indigo-600 text-white shadow-indigo-500/20 hover:bg-indigo-500" : "bg-slate-800 text-slate-600 cursor-not-allowed")}>
