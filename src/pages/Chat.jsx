@@ -25,6 +25,22 @@ export default function Chat({ userId, logout }) {
   const [groupName, setGroupName] = useState("");
   const [groupMembers, setGroupMembers] = useState([]);
 
+  const selectedUserRef = useRef(selectedUser);
+  const selectedGroupRef = useRef(selectedGroup);
+  const usersRef = useRef(users);
+
+  useEffect(() => {
+    selectedUserRef.current = selectedUser;
+  }, [selectedUser]);
+
+  useEffect(() => {
+    selectedGroupRef.current = selectedGroup;
+  }, [selectedGroup]);
+
+  useEffect(() => {
+    usersRef.current = users;
+  }, [users]);
+
   // Call States
   const [callStatus, setCallStatus] = useState(null); // 'calling', 'incoming', 'active', null
   const [localStream, setLocalStream] = useState(null);
@@ -57,10 +73,13 @@ export default function Chat({ userId, logout }) {
     s.on("hide_typing", ({ sender }) => setTypingUsers(prev => prev.filter(id => id !== String(sender))));
     
     s.on("receive_message", (msg) => {
-      const isForCurrentGroup = selectedGroup && msg.groupId && String(msg.groupId) === String(selectedGroup._id);
-      const isForCurrentUser = selectedUser && (
-        String(msg.sender) === String(selectedUser._id) || 
-        String(msg.receiver) === String(selectedUser._id)
+      const currentGroup = selectedGroupRef.current;
+      const currentUser = selectedUserRef.current;
+
+      const isForCurrentGroup = currentGroup && msg.groupId && String(msg.groupId) === String(currentGroup._id);
+      const isForCurrentUser = currentUser && (
+        String(msg.sender) === String(currentUser._id) || 
+        String(msg.receiver) === String(currentUser._id)
       );
 
       if (isForCurrentGroup || isForCurrentUser) {
@@ -70,7 +89,8 @@ export default function Chat({ userId, logout }) {
 
     // --- Calling Listeners ---
     s.on("incoming_call", ({ sender, offer, isVideo }) => {
-      setCaller(users.find(u => String(u._id) === String(sender)));
+      const targetUser = usersRef.current.find(u => String(u._id) === String(sender));
+      setCaller(targetUser);
       setIncomingOffer(offer);
       setIsVideoCall(isVideo);
       setCallStatus("incoming");
