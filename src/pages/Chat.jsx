@@ -57,9 +57,13 @@ export default function Chat({ userId, logout }) {
     s.on("hide_typing", ({ sender }) => setTypingUsers(prev => prev.filter(id => id !== String(sender))));
     
     s.on("receive_message", (msg) => {
-      if (selectedGroup && msg.groupId === selectedGroup._id) {
-        setMessages((prev) => [...prev, msg]);
-      } else if (selectedUser && (String(msg.sender) === String(selectedUser._id) || String(msg.receiver) === String(selectedUser._id))) {
+      const isForCurrentGroup = selectedGroup && msg.groupId && String(msg.groupId) === String(selectedGroup._id);
+      const isForCurrentUser = selectedUser && (
+        String(msg.sender) === String(selectedUser._id) || 
+        String(msg.receiver) === String(selectedUser._id)
+      );
+
+      if (isForCurrentGroup || isForCurrentUser) {
         setMessages((prev) => [...prev, msg]);
       }
     });
@@ -207,7 +211,11 @@ export default function Chat({ userId, logout }) {
       const offer = await pc.createOffer();
       await pc.setLocalDescription(offer);
 
-      socket.emit("call_user", { receiver: selectedUser._id, offer, isVideo: video });
+      socket.emit("call_user", { 
+        receiver: String(selectedUser._id), 
+        offer, 
+        isVideo: video 
+      });
     } catch (err) {
       console.error("Failed to start call", err);
       setCallStatus(null); // Reset on failure
@@ -309,9 +317,9 @@ export default function Chat({ userId, logout }) {
     };
 
     if (selectedGroup) {
-      msgData.groupId = selectedGroup._id;
+      msgData.groupId = String(selectedGroup._id);
     } else {
-      msgData.receiver = selectedUser._id;
+      msgData.receiver = String(selectedUser._id);
     }
 
     socket.emit("send_message", msgData);
