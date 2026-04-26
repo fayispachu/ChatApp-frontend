@@ -269,6 +269,20 @@ export default function Chat({ userId, logout }) {
   const isSelectedUserOnline = selectedUser && onlineUsers.includes(String(selectedUser._id));
   const isSelectedUserTyping = selectedUser && typingUsers.includes(String(selectedUser._id));
 
+  const handleBlockUser = () => {
+    alert(`You have blocked ${selectedUser?.username}. This is a demonstration feature.`);
+    setMenuOpen(false);
+  };
+
+  const handleViewProfile = () => {
+    alert(`Viewing ${selectedUser?.username}'s profile. This is a demonstration feature.`);
+    setMenuOpen(false);
+  };
+
+  const handleOpenSettings = () => {
+    alert("Opening Settings. This is a demonstration feature.");
+  };
+
   return (
     <div className="flex h-screen bg-[#0f172a] text-slate-200 overflow-hidden font-sans">
       <AnimatePresence>
@@ -304,7 +318,15 @@ export default function Chat({ userId, logout }) {
       </AnimatePresence>
 
       <div className={cn("fixed inset-y-0 left-0 z-40 transform transition-transform duration-300 md:relative md:translate-x-0", sidebarOpen ? "translate-x-0" : "-translate-x-full")}>
-        <UserList users={users} selectUser={setSelectedUser} myUserId={userId} onlineUsers={onlineUsers} typingUsers={typingUsers} logout={logout} />
+        <UserList 
+          users={users} 
+          selectUser={setSelectedUser} 
+          myUserId={userId} 
+          onlineUsers={onlineUsers} 
+          typingUsers={typingUsers} 
+          logout={logout}
+          onSettings={handleOpenSettings}
+        />
         <button onClick={() => setSidebarOpen(false)} className="md:hidden absolute top-6 right-[-50px] p-2 bg-slate-900 rounded-r-xl border border-l-0 border-slate-800 text-slate-400"><X className="w-6 h-6" /></button>
       </div>
 
@@ -345,10 +367,16 @@ export default function Chat({ userId, logout }) {
                         exit={{ opacity: 0, scale: 0.95, y: 10 }}
                         className="absolute right-0 mt-2 w-48 bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl overflow-hidden z-50 p-1"
                       >
-                        <button className="w-full text-left px-4 py-2.5 text-sm text-slate-300 hover:bg-slate-800 hover:text-white rounded-xl transition-colors flex items-center gap-3">
+                        <button 
+                          onClick={handleViewProfile}
+                          className="w-full text-left px-4 py-2.5 text-sm text-slate-300 hover:bg-slate-800 hover:text-white rounded-xl transition-colors flex items-center gap-3"
+                        >
                           <User className="w-4 h-4" /> View Profile
                         </button>
-                        <button className="w-full text-left px-4 py-2.5 text-sm text-slate-300 hover:bg-slate-800 hover:text-white rounded-xl transition-colors flex items-center gap-3">
+                        <button 
+                          onClick={handleBlockUser}
+                          className="w-full text-left px-4 py-2.5 text-sm text-slate-300 hover:bg-slate-800 hover:text-white rounded-xl transition-colors flex items-center gap-3"
+                        >
                           <X className="w-4 h-4 text-red-500" /> Block User
                         </button>
                       </motion.div>

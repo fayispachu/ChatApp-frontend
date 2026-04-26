@@ -3,7 +3,7 @@ import { Search, User, LogOut, Settings, X } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "../utils";
 
-export default function UserList({ users, selectUser, myUserId, onlineUsers, typingUsers, logout }) {
+export default function UserList({ users, selectUser, myUserId, onlineUsers, typingUsers, logout, onSettings }) {
   const [search, setSearch] = useState("");
   const [activeId, setActiveId] = useState(null);
 
@@ -33,6 +33,7 @@ export default function UserList({ users, selectUser, myUserId, onlineUsers, typ
           </div>
           <div className="flex items-center gap-1">
             <button 
+              onClick={onSettings}
               className="p-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
               title="Settings"
             >
