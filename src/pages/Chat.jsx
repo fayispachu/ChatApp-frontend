@@ -90,16 +90,20 @@ export default function Chat({ userId, logout }) {
     // --- Calling Listeners ---
     s.on("incoming_call", ({ sender, offer, isVideo }) => {
       const targetUser = usersRef.current.find(u => String(u._id) === String(sender));
-      setCaller(targetUser);
-      setIncomingOffer(offer);
-      setIsVideoCall(isVideo);
-      setCallStatus("incoming");
+      if (targetUser) {
+        setCaller(targetUser);
+        setIncomingOffer(offer);
+        setIsVideoCall(isVideo);
+        setCallStatus("incoming");
+      }
     });
 
     s.on("call_answered", async ({ answer }) => {
       if (peerRef.current) {
-        await peerRef.current.setRemoteDescription(new RTCSessionDescription(answer));
-        setCallStatus("active");
+        try {
+          await peerRef.current.setRemoteDescription(new RTCSessionDescription(answer));
+          setCallStatus("active");
+        } catch (err) { console.error("Error setting remote description", err); }
       }
     });
 
@@ -128,7 +132,7 @@ export default function Chat({ userId, logout }) {
       endCallLocally();
       s.disconnect();
     };
-  }, [userId, selectedUser, selectedGroup, users]);
+  }, [userId]);
 
   // Load data
   useEffect(() => {
