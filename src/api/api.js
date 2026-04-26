@@ -1,8 +1,8 @@
 import axios from "axios";
 
 const API = axios.create({
-  baseURL:  "https://chatapp-backend-p8q9.onrender.com/api",
-  withCredentials: true, // optional but good for cross-origin
+  baseURL: "http://localhost:5000/api",
+  withCredentials: true,
 });
 
 // Interceptor to attach token
@@ -13,8 +13,3 @@ API.interceptors.request.use((req) => {
 });
 
 export default API;
-
-// http://localhost:5000/api
-
-
-// https://chatapp-backend-p8q9.onrender.com/api
