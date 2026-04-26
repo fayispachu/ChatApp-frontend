@@ -11,7 +11,9 @@ import EmojiPicker from "emoji-picker-react";
 export default function Chat({ userId, logout }) {
   const [socket, setSocket] = useState(null);
   const [users, setUsers] = useState([]);
+  const [groups, setGroups] = useState([]);
   const [selectedUser, setSelectedUser] = useState(null);
+  const [selectedGroup, setSelectedGroup] = useState(null);
   const [messages, setMessages] = useState([]);
   const [text, setText] = useState("");
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -19,6 +21,9 @@ export default function Chat({ userId, logout }) {
   const [typingUsers, setTypingUsers] = useState([]);
   const [showEmoji, setShowEmoji] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [isCreatingGroup, setIsCreatingGroup] = useState(false);
+  const [groupName, setGroupName] = useState("");
+  const [groupMembers, setGroupMembers] = useState([]);
 
   // Call States
   const [callStatus, setCallStatus] = useState(null); // 'calling', 'incoming', 'active', null
@@ -52,9 +57,10 @@ export default function Chat({ userId, logout }) {
     s.on("hide_typing", ({ sender }) => setTypingUsers(prev => prev.filter(id => id !== String(sender))));
     
     s.on("receive_message", (msg) => {
-      const formatted = { ...msg, sender: String(msg.sender), receiver: String(msg.receiver) };
-      if ((formatted.sender === String(userId) && formatted.receiver === String(selectedUser?._id)) || (formatted.sender === String(selectedUser?._id) && formatted.receiver === String(userId))) {
-        setMessages((prev) => [...prev, formatted]);
+      if (selectedGroup && msg.groupId === selectedGroup._id) {
+        setMessages((prev) => [...prev, msg]);
+      } else if (selectedUser && (String(msg.sender) === String(selectedUser._id) || String(msg.receiver) === String(selectedUser._id))) {
+        setMessages((prev) => [...prev, msg]);
       }
     });
 
@@ -98,23 +104,72 @@ export default function Chat({ userId, logout }) {
       endCallLocally();
       s.disconnect();
     };
-  }, [userId, selectedUser, users]);
+  }, [userId, selectedUser, selectedGroup, users]);
 
-  // Load users
+  // Load data
   useEffect(() => {
-    API.get("/users").then((res) => setUsers(res.data)).catch(console.error);
-  }, []);
+    const fetchUsers = async () => {
+      try {
+        const { data } = await API.get("/users");
+        setUsers(data.filter((u) => u._id !== userId));
+      } catch (err) { console.error(err); }
+    };
+    const fetchGroups = async () => {
+      try {
+        const { data } = await API.get(`/groups/user/${userId}`);
+        setGroups(data);
+        if (socket) socket.emit("join_groups", data.map(g => g._id));
+      } catch (err) { console.error(err); }
+    };
+    fetchUsers();
+    fetchGroups();
+  }, [userId, socket]);
 
   // Load messages
   useEffect(() => {
-    if (!selectedUser) return;
-    setMessages([]);
-    API.get(`/messages/${selectedUser._id}`).then((res) => {
-      setMessages(res.data.map((m) => ({ ...m, sender: String(m.sender), receiver: String(m.receiver) })));
-    }).catch(console.error);
-  }, [selectedUser]);
+    const fetchMessages = async () => {
+      if (selectedUser) {
+        try {
+          const { data } = await API.get(`/messages/${userId}/${selectedUser._id}`);
+          setMessages(data);
+        } catch (err) { console.error(err); }
+      } else if (selectedGroup) {
+        try {
+          const { data } = await API.get(`/groups/${selectedGroup._id}/messages`);
+          setMessages(data);
+        } catch (err) { console.error(err); }
+      }
+    };
+    fetchMessages();
+  }, [selectedUser, selectedGroup, userId]);
 
   useEffect(scrollToBottom, [messages]);
+
+  const handleSelectUser = (user) => {
+    setSelectedGroup(null);
+    setSelectedUser(user);
+  };
+
+  const handleSelectGroup = (group) => {
+    setSelectedUser(null);
+    setSelectedGroup(group);
+  };
+
+  const handleCreateGroup = async () => {
+    if (!groupName || groupMembers.length === 0) return;
+    try {
+      const { data } = await API.post("/groups", {
+        name: groupName,
+        members: [...groupMembers, userId],
+        admin: userId
+      });
+      setGroups(prev => [...prev, data]);
+      socket.emit("join_groups", [data._id]);
+      setIsCreatingGroup(false);
+      setGroupName("");
+      setGroupMembers([]);
+    } catch (err) { console.error(err); }
+  };
 
   // --- WebRTC Logic ---
   const createPeer = (targetUserId) => {
@@ -242,20 +297,25 @@ export default function Chat({ userId, logout }) {
 
   // --- Message Logic ---
   const sendMessage = (fileData = null) => {
-    if (!socket || !selectedUser) return;
+    if (!socket || (!selectedUser && !selectedGroup)) return;
     if (!text.trim() && !fileData) return;
 
-    const msg = {
-      sender: String(userId),
-      receiver: String(selectedUser._id),
+    const msgData = {
+      sender: userId,
       text: text.trim(),
       fileUrl: fileData?.fileUrl,
       fileType: fileData?.fileType,
       time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
     };
 
-    socket.emit("send_message", msg);
-    socket.emit("stop_typing", { receiver: selectedUser._id });
+    if (selectedGroup) {
+      msgData.groupId = selectedGroup._id;
+    } else {
+      msgData.receiver = selectedUser._id;
+    }
+
+    socket.emit("send_message", msgData);
+    if (selectedUser) socket.emit("stop_typing", { receiver: selectedUser._id });
     setText("");
     setShowEmoji(false);
   };
@@ -336,41 +396,61 @@ export default function Chat({ userId, logout }) {
       <div className={cn("fixed inset-y-0 left-0 z-40 transform transition-transform duration-300 md:relative md:translate-x-0", sidebarOpen ? "translate-x-0" : "-translate-x-full")}>
         <UserList 
           users={users} 
-          selectUser={setSelectedUser} 
+          groups={groups}
+          selectUser={handleSelectUser} 
+          selectGroup={handleSelectGroup}
           myUserId={userId} 
           onlineUsers={onlineUsers} 
           typingUsers={typingUsers} 
           logout={logout}
           onSettings={handleOpenSettings}
+          onCreateGroup={() => setIsCreatingGroup(true)}
         />
         <button onClick={() => setSidebarOpen(false)} className="md:hidden absolute top-6 right-[-50px] p-2 bg-slate-900 rounded-r-xl border border-l-0 border-slate-800 text-slate-400"><X className="w-6 h-6" /></button>
       </div>
 
       <div className="flex-1 flex flex-col min-w-0 relative">
-        {selectedUser ? (
+        {selectedUser || selectedGroup ? (
           <>
+            {/* Header */}
             <div className="h-20 flex items-center justify-between px-6 bg-slate-900/50 backdrop-blur-md border-b border-slate-800 shadow-sm relative z-30">
               <div className="flex items-center gap-4">
+                <button onClick={() => setSidebarOpen(true)} className="md:hidden p-2 text-slate-400 hover:text-white"><Menu className="w-6 h-6" /></button>
                 <div className="relative">
-                  <div className="w-12 h-12 rounded-2xl bg-slate-800 flex items-center justify-center font-bold text-indigo-400 shadow-inner">{selectedUser.username.slice(0, 2).toUpperCase()}</div>
-                  {isSelectedUserOnline && <span className="absolute bottom-0 right-0 w-3 h-3 bg-emerald-500 border-2 border-slate-900 rounded-full" />}
+                  <div className="w-12 h-12 rounded-2xl bg-indigo-600 flex items-center justify-center text-white font-bold shadow-lg shadow-indigo-500/20">
+                    {(selectedUser?.username || selectedGroup?.name).slice(0, 2).toUpperCase()}
+                  </div>
+                  {selectedUser && onlineUsers.includes(String(selectedUser._id)) && <span className="absolute bottom-0 right-0 w-3.5 h-3.5 bg-emerald-500 border-2 border-slate-900 rounded-full" />}
                 </div>
                 <div>
-                  <h2 className="text-lg font-bold text-white leading-tight">{selectedUser.username}</h2>
-                  <p className={cn("text-xs transition-colors", isSelectedUserTyping ? "text-emerald-400 animate-pulse font-medium" : "text-slate-500")}>
-                    {isSelectedUserTyping ? "typing..." : (isSelectedUserOnline ? "Online now" : "Offline")}
+                  <h2 className="text-lg font-bold text-white tracking-tight leading-none mb-1">
+                    {selectedUser?.username || selectedGroup?.name}
+                  </h2>
+                  <p className="text-xs text-slate-500 font-medium">
+                    {selectedUser ? (onlineUsers.includes(String(selectedUser._id)) ? "Active Now" : "Offline") : `${selectedGroup?.members?.length} members`}
                   </p>
                 </div>
               </div>
 
-              <div className="flex items-center gap-2 relative">
-                <button onClick={() => startCall(false)} className="p-2.5 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition-all" title="Audio Call"><Phone className="w-5 h-5" /></button>
-                <button onClick={() => startCall(true)} className="p-2.5 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition-all" title="Video Call"><Video className="w-5 h-5" /></button>
-                
+              <div className="flex items-center gap-2">
+                <button 
+                  onClick={() => startCall(false)}
+                  className="p-2.5 rounded-xl text-slate-400 hover:text-indigo-400 hover:bg-indigo-500/10 transition-all"
+                  title="Audio Call"
+                >
+                  <Phone className="w-5 h-5" />
+                </button>
+                <button 
+                  onClick={() => startCall(true)}
+                  className="p-2.5 rounded-xl text-slate-400 hover:text-indigo-400 hover:bg-indigo-500/10 transition-all"
+                  title="Video Call"
+                >
+                  <Video className="w-5 h-5" />
+                </button>
                 <div className="relative">
                   <button 
                     onClick={() => setMenuOpen(!menuOpen)}
-                    className={cn("p-2.5 rounded-xl transition-all", menuOpen ? "text-white bg-slate-800" : "text-slate-400 hover:text-white hover:bg-slate-800")}
+                    className="p-2.5 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition-all"
                   >
                     <MoreVertical className="w-5 h-5" />
                   </button>
@@ -466,6 +546,37 @@ export default function Chat({ userId, logout }) {
           </div>
         )}
       </div>
+      {/* Create Group Modal */}
+      <AnimatePresence>
+        {isCreatingGroup && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-950/80 backdrop-blur-sm p-4">
+            <motion.div initial={{ scale: 0.95, y: 20 }} animate={{ scale: 1, y: 0 }} className="w-full max-w-md bg-slate-900 border border-slate-800 rounded-3xl shadow-2xl overflow-hidden p-6">
+              <h3 className="text-xl font-bold text-white mb-6">Create New Group</h3>
+              <div className="space-y-4">
+                <div>
+                  <label className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-2 block">Group Name</label>
+                  <input value={groupName} onChange={(e) => setGroupName(e.target.value)} placeholder="Enter group name..." className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-white focus:border-indigo-500 outline-none transition-all" />
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-2 block">Select Members</label>
+                  <div className="max-h-48 overflow-y-auto space-y-1 p-1 bg-slate-800/50 rounded-xl border border-slate-700">
+                    {users.map(u => (
+                      <label key={u._id} className="flex items-center gap-3 p-2.5 hover:bg-slate-700/50 rounded-lg cursor-pointer transition-colors">
+                        <input type="checkbox" checked={groupMembers.includes(u._id)} onChange={(e) => e.target.checked ? setGroupMembers([...groupMembers, u._id]) : setGroupMembers(groupMembers.filter(id => id !== u._id))} className="w-4 h-4 rounded border-slate-600 bg-slate-800 text-indigo-600 focus:ring-indigo-500" />
+                        <span className="text-slate-200 text-sm font-medium">{u.username}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+                <div className="flex gap-3 pt-4">
+                  <button onClick={() => setIsCreatingGroup(false)} className="flex-1 px-4 py-3 rounded-xl bg-slate-800 text-slate-300 font-bold hover:bg-slate-700 transition-all">Cancel</button>
+                  <button onClick={handleCreateGroup} disabled={!groupName || groupMembers.length === 0} className="flex-1 px-4 py-3 rounded-xl bg-indigo-600 text-white font-bold hover:bg-indigo-500 transition-all disabled:opacity-50 disabled:cursor-not-allowed">Create Group</button>
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

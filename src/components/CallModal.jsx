@@ -60,16 +60,16 @@ export default function CallModal({
 
         {/* Call Area */}
         <div className="relative w-full aspect-video bg-slate-900 rounded-2xl sm:rounded-3xl overflow-hidden border border-slate-800 shadow-2xl group max-h-[30vh] sm:max-h-none">
+          {/* Remote Video - Always rendered for audio, hidden if not a video call */}
+          <video 
+            ref={remoteVideoRef} 
+            autoPlay 
+            playsInline 
+            className={cn("w-full h-full object-cover", !isVideoCall && "hidden")}
+          />
+
           {isVideoCall ? (
             <>
-              {/* Remote Video (Big) */}
-              <video 
-                ref={remoteVideoRef} 
-                autoPlay 
-                playsInline 
-                className="w-full h-full object-cover"
-              />
-              
               {/* Local Video (Small Overlay) */}
               <motion.div 
                 drag
