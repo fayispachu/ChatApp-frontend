@@ -93,6 +93,9 @@ export default function Chat({ userId, logout }) {
       s.off("call_answered");
       s.off("ice_candidate");
       s.off("call_ended");
+      
+      // Cleanup streams on unmount
+      endCallLocally();
       s.disconnect();
     };
   }, [userId, selectedUser, users]);
@@ -208,15 +211,28 @@ export default function Chat({ userId, logout }) {
   };
 
   const endCallLocally = () => {
+    // 🛑 STOP all tracks to release Camera/Mic
     if (localStream) {
-      localStream.getTracks().forEach(track => track.stop());
+      localStream.getTracks().forEach(track => {
+        track.stop();
+        track.enabled = false;
+      });
       setLocalStream(null);
     }
+    
+    if (remoteStream) {
+      remoteStream.getTracks().forEach(track => track.stop());
+      setRemoteStream(null);
+    }
+
     if (peerRef.current) {
+      peerRef.current.getSenders().forEach(sender => {
+        if (sender.track) sender.track.stop();
+      });
       peerRef.current.close();
       peerRef.current = null;
     }
-    setRemoteStream(null);
+
     setCallStatus(null);
     setIncomingOffer(null);
     setCaller(null);
@@ -284,7 +300,7 @@ export default function Chat({ userId, logout }) {
   };
 
   return (
-    <div className="flex h-screen bg-[#0f172a] text-slate-200 overflow-hidden font-sans">
+    <div className="fixed inset-0 flex h-[100dvh] bg-[#0f172a] text-slate-200 overflow-hidden font-sans">
       <AnimatePresence>
         {callStatus && (
           <CallModal 
@@ -386,7 +402,7 @@ export default function Chat({ userId, logout }) {
               </div>
             </div>
 
-            <div className="flex-1 overflow-y-auto p-6 space-y-6 bg-transparent custom-scrollbar">
+            <div className="flex-1 overflow-y-auto p-3 sm:p-6 space-y-4 sm:space-y-6 bg-transparent custom-scrollbar">
               <AnimatePresence initial={false}>
                 {messages.map((m, i) => {
                   const isSender = String(m.sender) === String(userId);
@@ -415,7 +431,7 @@ export default function Chat({ userId, logout }) {
               <div ref={messagesEndRef} />
             </div>
 
-            <div className="p-6 pt-2 bg-transparent relative z-20">
+            <div className="p-3 sm:p-6 pt-1 sm:pt-2 bg-transparent relative z-20">
               <div className="relative">
                 <AnimatePresence>
                   {showEmoji && (

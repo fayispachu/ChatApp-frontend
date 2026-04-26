@@ -39,19 +39,19 @@ export default function CallModal({
       exit={{ opacity: 0 }}
       className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/95 backdrop-blur-xl p-4 overflow-y-auto"
     >
-      <div className="w-full max-w-lg flex flex-col items-center gap-4 sm:gap-8 my-auto">
+      <div className="w-full max-w-lg flex flex-col items-center gap-2 sm:gap-6 my-auto">
         {/* User Info */}
-        <div className="text-center space-y-2 sm:space-y-3">
+        <div className="text-center space-y-1 sm:space-y-3">
           <motion.div 
             initial={{ scale: 0.9 }}
             animate={{ scale: 1 }}
-            className="w-16 h-16 sm:w-20 sm:h-20 rounded-3xl bg-indigo-600 mx-auto flex items-center justify-center text-2xl sm:text-3xl font-bold text-white shadow-2xl shadow-indigo-500/20"
+            className="w-12 h-12 sm:w-20 sm:h-20 rounded-2xl sm:rounded-3xl bg-indigo-600 mx-auto flex items-center justify-center text-xl sm:text-3xl font-bold text-white shadow-2xl shadow-indigo-500/20"
           >
             {remoteUser?.username.slice(0, 2).toUpperCase()}
           </motion.div>
-          <div className="space-y-1">
-            <h2 className="text-xl sm:text-2xl font-bold text-white">{remoteUser?.username}</h2>
-            <p className="text-indigo-400 animate-pulse text-[10px] sm:text-sm font-medium tracking-wider uppercase">
+          <div className="space-y-0.5">
+            <h2 className="text-lg sm:text-2xl font-bold text-white">{remoteUser?.username}</h2>
+            <p className="text-indigo-400 animate-pulse text-[9px] sm:text-sm font-medium tracking-wider uppercase">
               {status === "incoming" ? "Incoming Call" : 
                status === "calling" ? "Calling..." : "On Call"}
             </p>
@@ -59,7 +59,7 @@ export default function CallModal({
         </div>
 
         {/* Call Area */}
-        <div className="relative w-full aspect-video bg-slate-900 rounded-3xl overflow-hidden border border-slate-800 shadow-2xl group max-h-[35vh] sm:max-h-none">
+        <div className="relative w-full aspect-video bg-slate-900 rounded-2xl sm:rounded-3xl overflow-hidden border border-slate-800 shadow-2xl group max-h-[30vh] sm:max-h-none">
           {isVideoCall ? (
             <>
               {/* Remote Video (Big) */}
