@@ -4,7 +4,7 @@ import { connectSocket } from "../socket/socket";
 import UserList from "../components/UserList";
 import CallModal from "../components/CallModal";
 import { motion, AnimatePresence } from "framer-motion";
-import { Send, Menu, X, MoreVertical, Phone, Video, Smile, Paperclip, Loader2, Download, Image as ImageIcon, FileText } from "lucide-react";
+import { Send, Menu, X, MoreVertical, Phone, Video, Smile, Paperclip, Loader2, Download, Image as ImageIcon, FileText, User } from "lucide-react";
 import { cn } from "../utils";
 import EmojiPicker from "emoji-picker-react";
 
@@ -131,10 +131,10 @@ export default function Chat({ userId, logout }) {
 
   const startCall = async (video = true) => {
     if (!selectedUser) return;
+    setCallStatus("calling"); // Set status immediately
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ video, audio: true });
       setLocalStream(stream);
-      setCallStatus("calling");
 
       const pc = createPeer(selectedUser._id);
       stream.getTracks().forEach(track => pc.addTrack(track, stream));
@@ -145,16 +145,17 @@ export default function Chat({ userId, logout }) {
       socket.emit("call_user", { receiver: selectedUser._id, offer });
     } catch (err) {
       console.error("Failed to start call", err);
+      setCallStatus(null); // Reset on failure
       alert("Please allow camera/microphone access");
     }
   };
 
   const answerCall = async () => {
     if (!caller || !incomingOffer) return;
+    setCallStatus("active"); // Set status immediately
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
       setLocalStream(stream);
-      setCallStatus("active");
 
       const pc = createPeer(caller._id);
       stream.getTracks().forEach(track => pc.addTrack(track, stream));
@@ -231,6 +232,8 @@ export default function Chat({ userId, logout }) {
     } catch (err) { alert("Upload failed"); } finally { setUploading(false); }
   };
 
+  const [menuOpen, setMenuOpen] = useState(false);
+
   const isSelectedUserOnline = selectedUser && onlineUsers.includes(String(selectedUser._id));
   const isSelectedUserTyping = selectedUser && typingUsers.includes(String(selectedUser._id));
 
@@ -272,7 +275,7 @@ export default function Chat({ userId, logout }) {
       <div className="flex-1 flex flex-col min-w-0 relative">
         {selectedUser ? (
           <>
-            <div className="h-20 flex items-center justify-between px-6 bg-slate-900/50 backdrop-blur-md border-b border-slate-800 shadow-sm relative z-10">
+            <div className="h-20 flex items-center justify-between px-6 bg-slate-900/50 backdrop-blur-md border-b border-slate-800 shadow-sm relative z-30">
               <div className="flex items-center gap-4">
                 <div className="relative">
                   <div className="w-12 h-12 rounded-2xl bg-slate-800 flex items-center justify-center font-bold text-indigo-400 shadow-inner">{selectedUser.username.slice(0, 2).toUpperCase()}</div>
@@ -286,10 +289,36 @@ export default function Chat({ userId, logout }) {
                 </div>
               </div>
 
-              <div className="flex items-center gap-2">
-                <button onClick={() => startCall(false)} className="p-2.5 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition-all"><Phone className="w-5 h-5" /></button>
-                <button onClick={() => startCall(true)} className="p-2.5 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition-all"><Video className="w-5 h-5" /></button>
-                <button className="p-2.5 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition-all"><MoreVertical className="w-5 h-5" /></button>
+              <div className="flex items-center gap-2 relative">
+                <button onClick={() => startCall(false)} className="p-2.5 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition-all" title="Audio Call"><Phone className="w-5 h-5" /></button>
+                <button onClick={() => startCall(true)} className="p-2.5 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition-all" title="Video Call"><Video className="w-5 h-5" /></button>
+                
+                <div className="relative">
+                  <button 
+                    onClick={() => setMenuOpen(!menuOpen)}
+                    className={cn("p-2.5 rounded-xl transition-all", menuOpen ? "text-white bg-slate-800" : "text-slate-400 hover:text-white hover:bg-slate-800")}
+                  >
+                    <MoreVertical className="w-5 h-5" />
+                  </button>
+
+                  <AnimatePresence>
+                    {menuOpen && (
+                      <motion.div 
+                        initial={{ opacity: 0, scale: 0.95, y: 10 }}
+                        animate={{ opacity: 1, scale: 1, y: 0 }}
+                        exit={{ opacity: 0, scale: 0.95, y: 10 }}
+                        className="absolute right-0 mt-2 w-48 bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl overflow-hidden z-50 p-1"
+                      >
+                        <button className="w-full text-left px-4 py-2.5 text-sm text-slate-300 hover:bg-slate-800 hover:text-white rounded-xl transition-colors flex items-center gap-3">
+                          <User className="w-4 h-4" /> View Profile
+                        </button>
+                        <button className="w-full text-left px-4 py-2.5 text-sm text-slate-300 hover:bg-slate-800 hover:text-white rounded-xl transition-colors flex items-center gap-3">
+                          <X className="w-4 h-4 text-red-500" /> Block User
+                        </button>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
               </div>
             </div>
 

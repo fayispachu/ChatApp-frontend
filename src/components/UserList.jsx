@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Search, User, LogOut, Menu, X } from "lucide-react";
+import { Search, User, LogOut, Settings, X } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "../utils";
 
@@ -31,13 +31,21 @@ export default function UserList({ users, selectUser, myUserId, onlineUsers, typ
             </div>
             <h2 className="text-xl font-bold text-white tracking-tight">Messages</h2>
           </div>
-          <button 
-            onClick={logout}
-            className="p-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
-            title="Logout"
-          >
-            <LogOut className="w-5 h-5" />
-          </button>
+          <div className="flex items-center gap-1">
+            <button 
+              className="p-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+              title="Settings"
+            >
+              <Settings className="w-5 h-5" />
+            </button>
+            <button 
+              onClick={logout}
+              className="p-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+              title="Logout"
+            >
+              <LogOut className="w-5 h-5" />
+            </button>
+          </div>
         </div>
 
         <div className="relative group">

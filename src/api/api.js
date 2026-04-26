@@ -1,7 +1,11 @@
 import axios from "axios";
 
+const BASE_URL = window.location.hostname === "localhost" 
+  ? "http://localhost:5000" 
+  : "https://chatapp-backend-p8q9.onrender.com";
+
 const API = axios.create({
-  baseURL: "https://chatapp-backend-p8q9.onrender.com/api",
+  baseURL: `${BASE_URL}/api`,
   withCredentials: true,
 });
 
